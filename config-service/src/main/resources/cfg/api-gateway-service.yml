@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  zipkin:
+    baseUrl: http://${cloud.zipkin-host}:9411
+  sleuth:
+    sampler:
+      percentage: 1
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: currency-rate-service
+          uri: ${cloud.currency-service-url}
+          predicates:
+            - Path=/currency/**
+        - id: exchange-processing-service
+          uri: ${cloud.processing-service-url}
+          predicates:
+            - Path=/processing/**
+        - id: account-history-service
+          uri: ${cloud.history-service-url}
+          predicates:
+            - Path=/history/**
+        - id: auth-service
+          uri: ${cloud.auth-service-url}
+          predicates:
+            - Path=/oauth/**, /user/**
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://${cloud.eureka-host}:8761/eureka
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

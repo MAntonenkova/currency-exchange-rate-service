@@ -1,0 +1,33 @@
+server:
+  port: 8020
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  kafka:
+    consumer:
+      bootstrap-servers: ${cloud.kafka-host}:9092
+      key-deserializer: org.apache.kafka.common.serialization.LongDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: ${spring.application.name}-group
+      auto-offset-reset: earliest
+
+telegram:
+  botName: java-micro-notification
+  token: ${TELEGRAM_BOT_TOKEN}
+
+eureka:
+  client:
+    enabled: false
+    serviceUrl:
+      defaultZone: http://${cloud.eureka-host}:8761/eureka
+
+security:
+  oauth2:
+    resource:
+      user-info-uri: ${cloud.user-info-url}
+    client:
+      access-token-uri: ${cloud.access-token-url}
+      client-id: notification
+      client-secret: notification123

@@ -1,0 +1,17 @@
+cloud:
+  eureka-host: localhost
+  zipkin-host: localhost
+  config-host: localhost
+  processing-service-url: http://localhost:8090
+  auth-service-url: http://localhost:9000
+  currency-service-url: http://localhost:8085
+  history-service-url: http://localhost:8010
+
+spring:
+  application:
+    name: api-gateway-service
+
+  cloud:
+    config:
+      uri: http://${cloud.config-host}:8888
+      fail-fast: true

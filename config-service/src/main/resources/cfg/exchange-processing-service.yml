@@ -1,0 +1,64 @@
+server:
+  port: 8090
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db
+    url: jdbc:postgresql://${cloud.db-host}:5432/processing
+    user: postgres
+    password: masterkey
+
+  jpa:
+    database: POSTGRESQL
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+  datasource:
+    url: jdbc:postgresql://${cloud.db-host}:5432/processing
+    username: postgres
+    password: masterkey
+    driverClassName: org.postgresql.Driver
+
+  kafka:
+    producer:
+      bootstrap-servers: ${cloud.kafka-host}:9092
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  zipkin:
+    enabled: false
+    baseUrl: http://${cloud.zipkin-host}:9411
+  sleuth:
+    sampler:
+      percentage: 1
+
+service:
+  currency:
+    url: ${cloud.currency-url}
+
+eureka:
+  client:
+    enabled: false
+    serviceUrl:
+      defaultZone: http://${cloud.eureka-host}:8761/eureka
+
+security:
+  oauth2:
+    resource:
+      token-info-uri: ${cloud.auth-token-url}
+      user-info-uri: ${cloud.user-info-url}
+    client:
+      client-id: processing
+      client-secret: processing123
+
+management:
+  endpoints:
+    enabled-by-default: true
+
+    web:
+      exposure:
+        include: "*"

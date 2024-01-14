@@ -1,0 +1,291 @@
+version: '2.1'
+
+services:
+  eureka-discovery-service:
+    image: eureka-discovery-service
+    container_name: slurm-eureka-discovery-service
+    ports:
+      - "8761:8761"
+    networks:
+      slurm:
+        aliases:
+          - "eureka"
+
+  config-service:
+    image: config-service
+    container_name: slurm-config-service
+    depends_on:
+      - eureka-discovery-service
+    ports:
+      - "8888:8888"
+    environment:
+      EUREKA_HOST: eureka
+    networks:
+      slurm:
+        aliases:
+          - "config"
+
+  currency-rate-service-1:
+    image: currency-rate-service
+    container_name: slurm-currency-rate-service-1
+    depends_on:
+      - eureka-discovery-service
+      - config-service
+    environment:
+      EUREKA_HOST: eureka
+      CFG_HOST: config
+      ZIPKIN_HOST: zipkin
+      LOGSTASH_HOST: logstash
+    ports:
+      - "8085:8085"
+    networks:
+      slurm:
+        aliases:
+          - "currency-rate-service-1"
+
+  currency-rate-service-2:
+    image: currency-rate-service
+    container_name: slurm-currency-rate-service-2
+    depends_on:
+      - eureka-discovery-service
+      - config-service
+    environment:
+      EUREKA_HOST: eureka
+      CFG_HOST: config
+      ZIPKIN_HOST: zipkin
+      LOGSTASH_HOST: logstash
+    ports:
+      - "8086:8085"
+    networks:
+      slurm:
+        aliases:
+          - "currency-rate-service-2"
+
+  gateway-service:
+    image: gateway-service
+    container_name: slurm-gateway-service
+    depends_on:
+      - eureka-discovery-service
+      - config-service
+    environment:
+      EUREKA_HOST: eureka
+      CFG_HOST: config
+      ZIPKIN_HOST: zipkin
+      CURRENCY_URL: lb://currency-rate-service
+      AUTH_URL: "http://auth-service:9000"
+      PROCESSING_URL: "http://exchange-processing-service:8090"
+      HISTORY_URL: "http://account-history-service:8010"
+    ports:
+      - "8080:8080"
+    networks:
+      slurm:
+        aliases:
+          - "gateway"
+
+  auth-service:
+    image: auth-service
+    container_name: slurm-auth-service
+    depends_on:
+      - eureka-discovery-service
+      - config-service
+    environment:
+      EUREKA_HOST: eureka
+      CFG_HOST: config
+      ZIPKIN_HOST: zipkin
+      LOGSTASH_HOST: logstash
+    ports:
+      - "9000:9000"
+    networks:
+      slurm:
+        aliases:
+          - "auth-service"
+
+  postgres:
+    image: postgres:13.3
+    container_name: slurm-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: masterkey
+    ports:
+      - 5432:5432
+    volumes:
+      - "/srv/db/postgres:/var/lib/postgresql/data"
+    networks:
+      slurm:
+        aliases:
+          - "postgres"
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: slurm-zookeeper
+    ports:
+      - 2181:2181
+    networks:
+      slurm:
+        aliases:
+          - "zookeeper"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: slurm-kafka
+    ports:
+      - 9092:9092
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=kafka
+      - KAFKA_ADVERTISED_PORT=9092
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CREATE_TOPICS=account-events:4:1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    depends_on:
+      - zookeeper
+    networks:
+      slurm:
+        aliases:
+          - "kafka"
+
+  exchange-processing-service:
+    image: exchange-processing-service
+    container_name: slurm-exchange-processing-service
+    depends_on:
+      - eureka-discovery-service
+      - config-service
+      - auth-service
+      - postgres
+      - kafka
+    environment:
+      EUREKA_HOST: eureka
+      CFG_HOST: config
+      ZIPKIN_HOST: zipkin
+      LOGSTASH_HOST: logstash
+      DB_HOST: postgres
+      KAFKA_HOST: kafka
+      CURRENCY_URL: "http://gateway:8080"
+      AUTH_TOKEN_URL: "http://auth-service:9000/oauth/check_token"
+      USER_INFO_URL: "http://auth-service:9000/user"
+    ports:
+      - "8090:8090"
+    networks:
+      slurm:
+        aliases:
+          - "exchange-processing-service"
+
+  account-history-service:
+    image: account-history-service
+    container_name: slurm-account-history-service
+    depends_on:
+      - eureka-discovery-service
+      - config-service
+      - auth-service
+      - postgres
+      - kafka
+    environment:
+      EUREKA_HOST: eureka
+      CFG_HOST: config
+      DB_HOST: postgres
+      KAFKA_HOST: kafka
+      AUTH_TOKEN_URL: "http://auth-service:9000/oauth/check_token"
+      USER_INFO_URL: "http://auth-service:9000/user"
+    ports:
+      - "8010:8010"
+    networks:
+      slurm:
+        aliases:
+          - "account-history-service"
+
+  nginx-web-client:
+    image: nginx:1.14.2
+    container_name: slurm-web-client
+    depends_on:
+      - gateway-service
+    volumes:
+      - "/work/projects/slurm/java-microservices-course/web-client/build/:/usr/share/nginx/html:ro"
+      - "/work/projects/slurm/java-microservices-course/web-client/conf/nginx.conf:/etc/nginx/nginx.conf:ro"
+    ports:
+      - "3000:80"
+    networks:
+      - slurm
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: slurm-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      slurm:
+        aliases:
+          - "zipkin"
+
+  elasticsearch:
+    image: elasticsearch:8.3.3
+    container_name: slurm-elasticsearch
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"
+      - "ES_JAVA_OPTS=-Xms128m -Xmx128m"
+    volumes:
+      - "/srv/db/elastic:/usr/share/elasticsearch/data"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      slurm:
+        aliases:
+          - "elasticsearch"
+
+  logstash:
+    image: logstash:8.3.3
+    container_name: slurm-logstash
+    depends_on:
+      - elasticsearch
+    volumes:
+      - "/work/projects/slurm/java-microservices-course/deploy/conf/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro"
+      - "/work/projects/slurm/java-microservices-course/deploy/conf:/usr/share/logstash/config/pipelines:ro"
+    ports:
+      - "5000:5000"
+    networks:
+      slurm:
+        aliases:
+          - "logstash"
+
+  kibana:
+    image: kibana:8.3.3
+    container_name: slurm-kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - "xpack.security.enabled=false"
+      - "ELASTICSEARCH_URL=http://elasticsearch:9300"
+    ports:
+      - "5601:5601"
+    networks:
+      slurm:
+        aliases:
+          - "kibana"
+
+  prometheus:
+    image: prom/prometheus
+    container_name: slurm-prometheus
+    volumes:
+      - "/work/projects/slurm/java-microservices-course/deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+    ports:
+      - "9090:9090"
+    networks:
+      slurm:
+        aliases:
+          - "prometheus"
+
+  grafana:
+    image: grafana/grafana
+    container_name: slurm-grafana
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: password
+    ports:
+      - "3030:3000"
+
+networks:
+  slurm:
+    driver: bridge

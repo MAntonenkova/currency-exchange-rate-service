@@ -1,0 +1,10 @@
+spring:
+  zipkin:
+    enabled: true
+
+eureka:
+  client:
+    enabled: true
+
+logstash:
+  enabled: true

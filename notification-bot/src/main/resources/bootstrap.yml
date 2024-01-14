@@ -1,0 +1,15 @@
+cloud:
+  kafka-host: localhost
+  eureka-host: localhost
+  config-host: localhost
+  access-token-url: http://localhost:9000/oauth/token
+  user-info-url: http://localhost:9000/user
+
+spring:
+  application:
+    name: notification-bot
+
+  cloud:
+    config:
+      uri: http://${cloud.config-host}:8888
+      fail-fast: true

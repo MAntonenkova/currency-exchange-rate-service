@@ -1,0 +1,28 @@
+server:
+  port: 8085
+
+spring:
+  zipkin:
+    enabled: false
+    baseUrl: http://${cloud.zipkin-host}:9411
+  sleuth:
+    sampler:
+      percentage: 1
+
+eureka:
+  client:
+    enabled: false
+    serviceUrl:
+      defaultZone: http://${cloud.eureka-host}:8761/eureka
+
+currency:
+  client:
+    url: "http://cbr.ru/scripts/XML_daily.asp"
+
+management:
+  endpoints:
+    enabled-by-default: true
+
+    web:
+      exposure:
+        include: "*"

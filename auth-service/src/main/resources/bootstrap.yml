@@ -1,0 +1,13 @@
+cloud:
+  eureka-host: localhost
+  zipkin-host: localhost
+  config-host: localhost
+
+spring:
+  application:
+    name: auth-service
+
+  cloud:
+    config:
+      uri: http://${cloud.config-host}:8888
+      fail-fast: true

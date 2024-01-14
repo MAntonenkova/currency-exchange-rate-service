@@ -1,0 +1,18 @@
+cloud:
+  db-host: localhost
+  eureka-host: localhost
+  config-host: localhost
+  kafka-host: localhost
+  zipkin-host: localhost
+  currency-url: http://localhost:8080
+  auth-token-url: http://localhost:9000/oauth/check_token
+  user-info-url: http://localhost:9000/user
+
+spring:
+  application:
+    name: exchange-processing-service
+
+  cloud:
+    config:
+      uri: http://${cloud.config-host}:8888
+      fail-fast: true
