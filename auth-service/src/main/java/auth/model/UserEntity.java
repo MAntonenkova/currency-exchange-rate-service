@@ -20,7 +20,7 @@ import java.util.Collection;
 public class UserEntity implements UserDetails {
     @Id
     @Column(name = "user_id")
-    private Integer userId;
+     private Integer userId;
 
     @Column(name = "username")
     private String username;
